@@ -1,0 +1,2 @@
+supabase:
+password: Z0uh4iTCjoh2azb9

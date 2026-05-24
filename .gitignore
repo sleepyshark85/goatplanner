@@ -1,0 +1,56 @@
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# --- Env files ---
+.env
+.env.local
+.env.*.local
+
+# --- Claude Code (machine-local settings) ---
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# --- Go (api/) ---
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+api/api
+api/api.exe
+# Test / coverage artifacts
+*.test
+*.out
+coverage.out
+coverage.html
+# Go workspaces
+go.work
+go.work.sum
+# SQLite databases (runtime artifact)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# --- Node / Expo (mobile/ — mobile/.gitignore covers most; these are belt-and-suspenders) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.expo/
+dist/
+build/
+web-build/
