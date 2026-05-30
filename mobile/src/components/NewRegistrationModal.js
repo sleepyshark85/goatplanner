@@ -125,8 +125,9 @@ export default function NewRegistrationModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        <View style={styles.backdrop} pointerEvents="box-none">
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.sheet}>
             {showTeamForm ? (
               <>
                 <Text style={styles.title}>New team</Text>
@@ -329,8 +330,8 @@ export default function NewRegistrationModal({
                 </View>
               </>
             )}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

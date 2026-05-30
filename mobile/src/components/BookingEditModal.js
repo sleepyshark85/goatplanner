@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import DateTimeField from './DateTimeField';
+import RecurrencePicker from './RecurrencePicker';
 
 const SCOPE_OPTIONS = [
   { value: 'single', label: 'Just this one' },
@@ -22,6 +25,7 @@ export default function BookingEditModal({ occurrence, teams, onClose, onSave })
   const [start, setStart] = useState(null);
   const [end, setEnd] = useState(null);
   const [scope, setScope] = useState('single');
+  const [rrule, setRrule] = useState(null);
 
   useEffect(() => {
     if (occurrence) {
@@ -30,6 +34,7 @@ export default function BookingEditModal({ occurrence, teams, onClose, onSave })
       setStart(new Date(occurrence.start));
       setEnd(new Date(occurrence.end));
       setScope('single');
+      setRrule(occurrence.rrule ?? null);
     }
   }, [occurrence]);
 
@@ -51,9 +56,10 @@ export default function BookingEditModal({ occurrence, teams, onClose, onSave })
       teamId !== occurrence.teamId ||
       currentDesc !== originalDesc ||
       start.getTime() !== occurrence.start.getTime() ||
-      end.getTime() !== occurrence.end.getTime()
+      end.getTime() !== occurrence.end.getTime() ||
+      rrule !== (occurrence.rrule ?? null)
     );
-  }, [occurrence, teamId, description, start, end]);
+  }, [occurrence, teamId, description, start, end, rrule]);
 
   const invalidRange = start && end && end.getTime() <= start.getTime();
 
@@ -63,115 +69,123 @@ export default function BookingEditModal({ occurrence, teams, onClose, onSave })
     if (!occurrence || !start || !end || !teamId || invalidRange) return;
     const effectiveScope = isRecurring ? scope : 'single';
     const desc = description.trim() || null;
-    await onSave(effectiveScope, teamId, start, end, desc);
+    await onSave(effectiveScope, teamId, start, end, desc, rrule);
     onClose();
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
-          {occurrence && start && end && (
-            <>
-              <Text style={styles.title}>Edit booking</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.backdrop} pointerEvents="box-none">
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.sheet}>
+            {occurrence && start && end && (
+              <>
+                <Text style={styles.title}>Edit booking</Text>
 
-              <ScrollView style={{ maxHeight: 460 }}>
-                {isRecurring && (
-                  <>
-                    <Text style={styles.label}>Apply changes to</Text>
-                    <View style={styles.scopeRow}>
-                      {SCOPE_OPTIONS.map((opt) => {
-                        const selected = scope === opt.value;
-                        return (
-                          <Pressable
-                            key={opt.value}
-                            onPress={() => setScope(opt.value)}
-                            style={[
-                              styles.scopeBtn,
-                              selected && styles.scopeBtnSelected,
-                            ]}
-                          >
-                            <Text
+                <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+                  {isRecurring && (
+                    <>
+                      <Text style={styles.label}>Apply changes to</Text>
+                      <View style={styles.scopeRow}>
+                        {SCOPE_OPTIONS.map((opt) => {
+                          const selected = scope === opt.value;
+                          return (
+                            <Pressable
+                              key={opt.value}
+                              onPress={() => setScope(opt.value)}
                               style={[
-                                styles.scopeText,
-                                selected && styles.scopeTextSelected,
+                                styles.scopeBtn,
+                                selected && styles.scopeBtnSelected,
                               ]}
                             >
-                              {opt.label}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                    <Text style={styles.scopeHint}>
-                      {scope === 'single'
-                        ? 'Only this occurrence will change. The rest of the series stays.'
-                        : 'This occurrence and all later ones will change. Past stays unchanged.'}
-                    </Text>
-                  </>
-                )}
-                <Text style={styles.label}>Team</Text>
-                <View style={styles.grid}>
-                  {teams.map((t) => {
-                    const selected = t.id === teamId;
-                    return (
-                      <Pressable
-                        key={t.id}
-                        onPress={() => setTeamId(t.id)}
-                        style={[
-                          styles.chip,
-                          selected && { borderColor: t.color, backgroundColor: `${t.color}22` },
-                        ]}
-                      >
-                        <View style={[styles.dot, { backgroundColor: t.color }]} />
-                        <Text style={styles.chipText}>{t.name}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                              <Text
+                                style={[
+                                  styles.scopeText,
+                                  selected && styles.scopeTextSelected,
+                                ]}
+                              >
+                                {opt.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <Text style={styles.scopeHint}>
+                        {scope === 'single'
+                          ? 'Only this occurrence will change. The rest of the series stays.'
+                          : 'This occurrence and all later ones will change. Past stays unchanged.'}
+                      </Text>
+                    </>
+                  )}
+                  <Text style={styles.label}>Team</Text>
+                  <View style={styles.grid}>
+                    {teams.map((t) => {
+                      const selected = t.id === teamId;
+                      return (
+                        <Pressable
+                          key={t.id}
+                          onPress={() => setTeamId(t.id)}
+                          style={[
+                            styles.chip,
+                            selected && { borderColor: t.color, backgroundColor: `${t.color}22` },
+                          ]}
+                        >
+                          <View style={[styles.dot, { backgroundColor: t.color }]} />
+                          <Text style={styles.chipText}>{t.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
 
-                <View style={styles.timeRow}>
-                  <DateTimeField label="Start" value={start} onChange={handleStartChange} />
-                </View>
-                <View style={styles.timeRow}>
-                  <DateTimeField label="End" value={end} onChange={setEnd} />
-                </View>
-                {invalidRange && (
-                  <Text style={styles.error}>End must be after start.</Text>
-                )}
+                  <View style={styles.timeRow}>
+                    <DateTimeField label="Start" value={start} onChange={handleStartChange} />
+                  </View>
+                  <View style={styles.timeRow}>
+                    <DateTimeField label="End" value={end} onChange={setEnd} />
+                  </View>
+                  {invalidRange && (
+                    <Text style={styles.error}>End must be after start.</Text>
+                  )}
 
-                <Text style={styles.label}>Description (optional)</Text>
-                <TextInput
-                  placeholder="Notes, agenda, links…"
-                  value={description}
-                  onChangeText={setDescription}
-                  style={[styles.input, styles.textarea]}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </ScrollView>
+                  <RecurrencePicker value={rrule} onChange={setRrule} startDate={start} />
 
-              <View style={styles.actions}>
-                <Pressable
-                  style={[
-                    styles.btn,
-                    styles.btnPrimary,
-                    (!dirty || invalidRange) && styles.btnDisabled,
-                  ]}
-                  disabled={!dirty || invalidRange}
-                  onPress={submit}
-                >
-                  <Text style={styles.btnPrimaryText}>Save changes</Text>
-                </Pressable>
-                <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClose}>
-                  <Text style={styles.btnGhostText}>Cancel</Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-        </Pressable>
-      </Pressable>
+                  <Text style={styles.label}>Description (optional)</Text>
+                  <TextInput
+                    placeholder="Notes, agenda, links…"
+                    value={description}
+                    onChangeText={setDescription}
+                    style={[styles.input, styles.textarea]}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </ScrollView>
+
+                <View style={styles.actions}>
+                  <Pressable
+                    style={[
+                      styles.btn,
+                      styles.btnPrimary,
+                      (!dirty || invalidRange) && styles.btnDisabled,
+                    ]}
+                    disabled={!dirty || invalidRange}
+                    onPress={submit}
+                  >
+                    <Text style={styles.btnPrimaryText}>Save changes</Text>
+                  </Pressable>
+                  <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClose}>
+                    <Text style={styles.btnGhostText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -187,10 +201,12 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: 480,
+    maxHeight: '90%',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
   },
+  scroll: { flexShrink: 1 },
   title: { fontSize: 20, fontWeight: '700' },
   scopeRow: { flexDirection: 'row', gap: 8 },
   scopeBtn: {

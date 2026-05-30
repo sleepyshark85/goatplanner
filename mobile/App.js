@@ -50,11 +50,11 @@ function BookingApp({ session }) {
     setCreateStart(null);
   };
 
-  const handleEditSave = async (scope, teamId, start, end, description) => {
+  const handleEditSave = async (scope, teamId, start, end, description, rrule) => {
     if (!editingOccurrence) return;
     const booking = store.bookingById(editingOccurrence.bookingId);
     if (!booking) return;
-    const fields = { teamId, start, end, description };
+    const fields = { teamId, start, end, description, rrule };
     if (scope === 'single' && editingOccurrence.isRecurring) {
       await store.editOccurrenceOnly(booking, editingOccurrence.occurrenceAt, fields);
     } else {
